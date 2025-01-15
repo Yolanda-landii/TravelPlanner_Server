@@ -10,6 +10,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+
+app.use('/api/weather', require('./routes/weatherRoute'));
 app.use('/api/destinations', require('./routes/destinationRoute'));
 
 const PORT = process.env.PORT || 5000;
