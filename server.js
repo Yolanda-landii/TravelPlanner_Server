@@ -11,7 +11,7 @@ app.use(cors());
 app.use(express.json());
 
 
-app.use('/api/activities', require('./routes/ActivitiesRoute'));
+
 
 
 app.use('/api/weather', require('./routes/weatherRoute'));
