@@ -74,42 +74,78 @@ const deleteActivity = async (req, res) => {
   }
 };
 
+const activitySuggestionsByTemp = {
+  cold: ['skiing', 'snowboarding', 'indoor spa'],
+  cool: ['hiking', 'walking tours', 'museum visit'],
+  warm: ['biking', 'zoo visit', 'picnic'],
+  hot: ['beach volleyball', 'swimming', 'water park'],
+};
 // Fetch activities from an external API
-const fetchExternalActivities = async (req, res) => {
-    const { lat, lon, radius = 10000 } = req.query;
-  
-    if (!lat || !lon) {
-      return res.status(400).json({ message: 'Latitude and Longitude are required' });
+const fetchActivitiesByWeather = async (req, res) => {
+  const { lat, lon, radius = 10000 } = req.query;
+
+  if (!lat || !lon) {
+    return res.status(400).json({ message: 'Latitude and Longitude are required' });
+  }
+
+  try {
+    // Fetch weather data
+    const weatherResponse = await axios.get('https://api.openweathermap.org/data/2.5/weather', {
+      params: {
+        lat,
+        lon,
+        appid: process.env.WEATHER_API_KEY,
+        units: 'metric',
+      },
+    });
+
+    const temperature = weatherResponse.data.main.temp;
+
+    // Determine activity category based on temperature
+    let activityType;
+    if (temperature < 10) {
+      activityType = 'cold';
+    } else if (temperature >= 10 && temperature <= 20) {
+      activityType = 'cool';
+    } else if (temperature > 20 && temperature <= 30) {
+      activityType = 'warm';
+    } else {
+      activityType = 'hot';
     }
-  
-    try {
-      const response = await axios.get(EXTERNAL_API_URL, {
-        params: {
-          apikey: API_KEY,
-          lat,
-          lon,
-          radius,
-          limit: 20,
-        },
-      });
-  
-      const activities = response.data.features.map((place) => ({
-        name: place.properties.name,
-        location: `${place.geometry.coordinates[1]}, ${place.geometry.coordinates[0]}`,
-        description: place.properties.kinds || 'No description available',
-      }));
-  
-      res.status(200).json(activities);
-    } catch (error) {
-      console.error('Error fetching external activities:', error);
-      res.status(500).json({ message: 'Failed to fetch external activities' });
-    }
-  };
+
+    // Fetch external activities
+    const response = await axios.get(EXTERNAL_API_URL, {
+      params: {
+        apikey: API_KEY,
+        lat,
+        lon,
+        radius,
+        limit: 20,
+      },
+    });
+
+    // Filter and format activities
+    const activities = response.data.features.map((place) => ({
+      name: place.properties.name,
+      location: `${place.geometry.coordinates[1]}, ${place.geometry.coordinates[0]}`,
+      description: place.properties.kinds || 'No description available',
+    })).filter(activity => 
+      activitySuggestionsByTemp[activityType].some(suggestion => 
+        activity.description.toLowerCase().includes(suggestion)
+      )
+    );
+
+    res.status(200).json({ temperature, suggestedActivities: activities });
+  } catch (error) {
+    console.error('Error fetching activities by temperature:', error);
+    res.status(500).json({ message: 'Failed to fetch activities by temperature' });
+  }
+};
 
 module.exports = {
   getActivities,
   addActivity,
   updateActivity,
   deleteActivity,
-  fetchExternalActivities,
+  fetchActivitiesByWeather,
 };
