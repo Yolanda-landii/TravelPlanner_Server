@@ -11,12 +11,13 @@ app.use(cors());
 app.use(express.json());
 
 
+app.get('/', (req, res) => {
+  res.send('Welcome to the Travel Planner API!');
+});
 
-
-
+// Define API routes
 app.use('/api/weather', require('./routes/weatherRoute'));
 app.use('/api/destinations', require('./routes/destinationRoute'));
-
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
